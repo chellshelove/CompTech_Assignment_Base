@@ -1,0 +1,87 @@
+class TreeNode:
+    def __init__(self, value):
+        self.value = value
+        self.children = []
+
+OPERATORS = {'+': lambda x, y: x + y,
+             '-': lambda x, y: x - y,
+             '*': lambda x, y: x * y,
+             '/': lambda x, y: x / y,   #division
+             '^': lambda x, y: x ** y,  #exponential
+             '%': lambda x, y: x % y}   #modulo
+
+def error(message):
+    print(f"Error: {message}")
+    exit(1)
+
+def get_tokens(input_string):
+    tokens = []
+    current_token = ""
+    for char in input_string:
+        if char.isspace(): #checks for white space
+            if current_token:
+                tokens.append(current_token)
+                current_token = ""
+        elif char in OPERATORS or char in '()':
+            if current_token:
+                tokens.append(current_token)
+                current_token = ""
+            tokens.append(char)
+        else:
+            current_token += char
+    if current_token:
+        tokens.append(current_token)
+    return tokens
+
+def calculate(tree):
+    if tree.children:
+        left = calculate(tree.children[0])
+        right = calculate(tree.children[1])
+        operator = tree.value
+        return OPERATORS[operator](left, right)
+    else:
+        return int(tree.value)
+
+def factor(tokens):
+    if tokens and tokens[0] == '(':
+        tokens.pop(0)
+        temp = expr(tokens)
+        if not tokens or tokens.pop(0) != ')':
+            error("Expected ')'")
+        return temp
+    elif tokens and tokens[0].isdigit():
+        return TreeNode(tokens.pop(0))
+    else:
+        error("Invalid input")
+
+def create_operation_tree(tokens, operators, next_func):
+    temp = next_func(tokens)
+    while tokens and tokens[0] in operators:
+        op = TreeNode(tokens.pop(0))
+        op.children.append(temp)
+        op.children.append(next_func(tokens))
+        temp = op
+    return temp
+
+def power(tokens):
+    return create_operation_tree(tokens, ['^'], factor)
+
+def term(tokens):
+    return create_operation_tree(tokens, ['*', '/', '%'], power)
+
+def expr(tokens):
+    return create_operation_tree(tokens, ['+', '-'], term)
+
+def parse(input_string):
+    tokens = get_tokens(input_string)
+    result_tree = expr(tokens)
+    if tokens:
+        error("Invalid input")
+    return result_tree
+
+if __name__ == "__main__":
+    print("A RECURSIVE-DESCENT CALCULATOR.")
+    print("\tThe valid operations are +, -, *, /, ^, and %")
+    input_string = input("Enter the calculation string, e.g., '34 + 6 * 56': ")
+    result_tree = parse(input_string)
+    print("Result =", calculate(result_tree))
